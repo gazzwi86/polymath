@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Irrelevant input provided",
+    "input": "Banana bread recipe.",
+    "referenceOutputs": {
+      "blurb": "Sorry, I can't answer that because the input is ambiguous or not relevant to the Tech Radar session topic."
+    }
+  },
+  {
+    "name": "Ambiguous content provided",
+    "input": "Something about cloud.",
+    "referenceOutputs": {
+      "blurb": "Sorry, I can't answer that because the input is not relevant to the Tech Radar session topic."
+    }
+  },
+  {
+    "name": "New Relic for AI blurb",
+    "input": "I need a invite for New Relic AI Observability",
+    "referenceOutputs": {
+      "blurb": "🚀 New Relic AI Observability\n\nWe'll be diving into New Relic's approach to AI Observability! In this Tech Radar session, we'll explore how New Relic helps you monitor, troubleshoot, and optimize your AI-powered applications. This includes features for tracking model performance, identifying latency issues, and ensuring the reliability of your AI deployments.\n\nWho should attend:\n- Engineers, DevOps, and anyone interested in understanding how to monitor and manage AI applications effectively.\n\nTech Radar is your monthly dose of the latest tech trends and tools. It's a great opportunity for you to learn from industry leaders and explore technologies to deliver outstanding outcomes for our clients.\n\n💡 Join the discussion and ask questions in the #tech-radar Slack channel!"
+    }
+  }
+]

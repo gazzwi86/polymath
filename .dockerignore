@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+.git
+.gitignore
+.vscode
+coverage
+*.test.ts
+*.spec.ts
+__tests__/
+.DS_Store
+*.md
+docker-compose.yml
+infra/

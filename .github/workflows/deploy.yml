@@ -1,0 +1,88 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write  # ✅ required for OIDC!
+  contents: read   # Optional: needed if your workflow checks out code
+
+jobs:
+  # test:
+  #   environment: dev
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: ~/.npm
+  #         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-npm-
+  #     - run: npm ci
+  #     - run: npm run lint
+  #     - run: npm run format:check
+  #     - run: npm run test
+  #     - run: npm run build
+  deploy:
+    # needs: test
+    environment: dev
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+      TF_VAR_ecr_repo_name: ${{ secrets.ECR_REPO_NAME }}
+      TF_VAR_ecs_cluster_name: ${{ secrets.ECS_CLUSTER_NAME }}
+      TF_VAR_ecs_task_family: ${{ secrets.ECS_TASK_FAMILY }}
+      TF_VAR_ecs_service_name: ${{ secrets.ECS_SERVICE_NAME }}
+      TF_VAR_ollama_host: ${{ secrets.OLLAMA_HOST }}
+      TF_VAR_ollama_model: ${{ secrets.OLLAMA_MODEL }}
+      TF_VAR_google_api_key: ${{ secrets.GOOGLE_API_KEY }}
+      TF_VAR_evaluator_model: ${{ secrets.EVALUATOR_MODEL }}
+      TF_VAR_google_model: ${{ secrets.GOOGLE_MODEL }}
+      TF_VAR_langsmith_api_key: ${{ secrets.LANGSMITH_API_KEY }}
+      TF_VAR_langsmith_project: ${{ secrets.LANGSMITH_PROJECT }}
+      TF_VAR_langsmith_tracing: ${{ secrets.LANGSMITH_TRACING }}
+      TF_VAR_langsmith_endpoint: ${{ secrets.LANGSMITH_ENDPOINT }}
+      TF_VAR_bedrock_model_id: ${{ secrets.BEDROCK_MODEL_ID }}
+      TF_VAR_bedrock_access_key: ${{ secrets.BEDROCK_ACCESS_KEY }}
+      TF_VAR_bedrock_secret_key: ${{ secrets.BEDROCK_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Terraform Init & Apply (Foundations)
+        run: |
+          cd infra
+          terraform init
+          terraform apply -auto-approve -target=aws_ecr_repository.this
+      - name: Build, tag, and push Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          npm ci --omit=dev
+          npm run build
+          docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPO_NAME }}:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/${{ secrets.ECR_REPO_NAME }}:$IMAGE_TAG
+      - name: Terraform Init & Apply (All Infra)
+        run: |
+          cd infra
+          terraform apply -auto-approve

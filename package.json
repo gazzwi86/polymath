@@ -1,0 +1,58 @@
+{
+  "name": "polymath",
+  "version": "1.0.0",
+  "description": "An agent for generating tech radar meeting invites using LangChain.",
+  "keywords": [
+    "langchain",
+    "agent"
+  ],
+  "author": "Gareth Williams gareth.williams@versent.com.au",
+  "license": "ISC",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node src/index.ts",
+    "build": "tsc --project tsconfig.json",
+    "lint": "eslint . --ext .ts,.js,.json,.md",
+    "lint:fix": "eslint . --ext .ts,.js,.json,.md --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "jest --config jest.config.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@eslint/json": "^0.12.0",
+    "@eslint/markdown": "^6.6.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.35.0",
+    "@typescript-eslint/parser": "^8.35.0",
+    "dotenv": "^16.5.0",
+    "eslint": "^9.29.0",
+    "globals": "^16.2.0",
+    "husky": "^9.1.7",
+    "jest": "^30.0.3",
+    "lint-staged": "^16.1.2",
+    "openevals": "^0.1.0",
+    "prettier": "^3.6.1",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.35.0"
+  },
+  "dependencies": {
+    "@aws-sdk/credential-provider-node": "^3.835.0",
+    "@langchain/community": "^0.3.47",
+    "@langchain/core": "^0.3.61",
+    "@langchain/google-genai": "^0.2.13",
+    "@langchain/ollama": "^0.2.3",
+    "@smithy/eventstream-codec": "^2.2.0",
+    "langsmith": "^0.3.34"
+  },
+  "lint-staged": {
+    "*.{js,ts,json,md}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  }
+}

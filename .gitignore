@@ -1,0 +1,24 @@
+node_modules
+.env
+.env.*
+.DS_Store
+dist/
+coverage/
+*.log
+npm-debug.log
+.vscode/
+.idea/
+*.tsbuildinfo
+*.tgz
+infra/.terraform/
+infra/terraform.tfstate*
+
+# Ignore test outputs and local dev files
+*.test.ts
+*.spec.ts
+__tests__/
+
+# Ignore editor swap/backup files
+*~
+*.swp
+*.swo
