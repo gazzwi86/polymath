@@ -1,3 +1,4 @@
+vpc_name = "Polymath"
 api_name = "Polymath"
 ecs_cluster_name = "Polymath"
 

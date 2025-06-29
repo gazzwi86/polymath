@@ -4,33 +4,33 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write  # ✅ required for OIDC!
-  contents: read   # Optional: needed if your workflow checks out code
+  id-token: write # ✅ required for OIDC!
+  contents: read # Optional: needed if your workflow checks out code
 
 jobs:
-  # test:
-  #   environment: dev
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: "20"
-  #     - uses: actions/cache@v4
-  #       with:
-  #         path: ~/.npm
-  #         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-npm-
-  #     - run: npm ci
-  #     - run: npm run lint
-  #     - run: npm run format:check
-  #     - run: npm run test
-  #     - run: npm run build
+  test:
+    environment: dev
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build
   deploy:
-    # needs: test
+    needs: test
     environment: dev
     runs-on: ubuntu-latest
     env:

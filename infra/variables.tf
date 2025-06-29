@@ -6,6 +6,7 @@ variable aws_region_az {
   type = string
   default = "ap-southeast-2a"
 }
+variable "vpc_name" { type = string }
 variable "api_name" { type = string }
 variable "ecr_repo_name" { type = string }
 variable "ecs_cluster_name" { type = string }
