@@ -48,8 +48,13 @@ resource "aws_route_table" "main" {
   }
 }
 
-resource "aws_route_table_association" "main" {
-  subnet_id      = aws_subnet.main.id
+resource "aws_route_table_association" "primary" {
+  subnet_id      = aws_subnet.primary.id
+  route_table_id = aws_route_table.main.id
+}
+
+resource "aws_route_table_association" "secondary" {
+  subnet_id      = aws_subnet.secondary.id
   route_table_id = aws_route_table.main.id
 }
 
@@ -133,6 +138,90 @@ resource "aws_ecs_task_definition" "this" {
   ])
 }
 
+resource "aws_lb" "main" {
+  name               = "${var.ecs_service_name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [aws_subnet.primary.id, aws_subnet.secondary.id]
+
+  enable_deletion_protection = false
+}
+
+resource "aws_lb_target_group" "main" {
+  name        = "${var.ecs_service_name}-tg"
+  port        = var.container_port
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_lb_listener" "main" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.main.arn
+  }
+}
+
+resource "aws_security_group" "ecs_service_sg" {
+  name        = "${var.ecs_service_name}-sg"
+  description = "Allow inbound HTTP traffic to ECS service on port ${var.container_port}"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description      = "Allow HTTP from ALB"
+    from_port        = var.container_port
+    to_port          = var.container_port
+    protocol         = "tcp"
+    security_groups  = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
+resource "aws_security_group" "alb_sg" {
+  name        = "${var.ecs_service_name}-alb-sg"
+  description = "Security group for ALB"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "HTTP from anywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_ecs_service" "this" {
   name            = var.ecs_service_name
   cluster         = aws_ecs_cluster.this.id
@@ -140,9 +229,15 @@ resource "aws_ecs_service" "this" {
   desired_count   = var.ecs_service_desired_count
   launch_type     = "FARGATE"
   network_configuration {
-    subnets          = [aws_subnet.main.id]
+    subnets          = [aws_subnet.primary.id, aws_subnet.secondary.id]
     security_groups  = [aws_security_group.ecs_service_sg.id]
     assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.main.arn
+    container_name   = var.ecs_task_name
+    container_port   = var.container_port
   }
 }
 
@@ -166,7 +261,7 @@ resource "aws_apigatewayv2_integration" "agent_api_integration" {
   api_id                 = aws_apigatewayv2_api.agent_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "POST"
-  integration_uri        = "http://${aws_ecs_service.this.name}.ecs.${var.aws_region}.amazonaws.com:${var.container_port}/invite"
+  integration_uri        = "http://${aws_lb.main.dns_name}:80/invite"
   payload_format_version = "1.0"
 }
 
@@ -180,7 +275,7 @@ resource "aws_apigatewayv2_integration" "health_integration" {
   api_id                 = aws_apigatewayv2_api.agent_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "GET"
-  integration_uri        = "http://${aws_ecs_service.this.name}.ecs.${var.aws_region}.amazonaws.com:${var.container_port}/health"
+  integration_uri        = "http://${aws_lb.main.dns_name}:80/health"
   payload_format_version = "1.0"
 }
 
@@ -190,32 +285,15 @@ resource "aws_apigatewayv2_route" "health_route" {
   target    = "integrations/${aws_apigatewayv2_integration.health_integration.id}"
 }
 
-resource "aws_subnet" "main" {
+resource "aws_subnet" "primary" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = cidrsubnet(var.vpc_cidr_block, 8, 0)
-  availability_zone       = var.aws_region_az
+  availability_zone       = var.aws_region_az_1
 }
 
-resource "aws_security_group" "ecs_service_sg" {
-  name        = "${var.ecs_service_name}-sg"
-  description = "Allow inbound HTTP traffic to ECS service on port ${var.container_port}"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description      = "Allow HTTP from anywhere (API Gateway)"
-    from_port        = var.container_port
-    to_port          = var.container_port
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
+resource "aws_subnet" "secondary" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(var.vpc_cidr_block, 8, 1)
+  availability_zone       = var.aws_region_az_2
 }
 

@@ -1,11 +1,11 @@
-vpc_name = "Polymath"
-api_name = "Polymath"
-ecs_cluster_name = "Polymath"
+vpc_name = "polymath-vpc"
+api_name = "polymath-api"
 
-ecr_repo_name = "polymath-tech-radar-invite"
-ecs_service_name = "polymath-tech-radar-invite-service"
-ecs_task_family = "polymath-tech-radar-invite-family"
-ecs_task_name = "polymath-tech-radar-invite-task"
+ecs_cluster_name = "polymath"
+ecr_repo_name = "polymath-tr-invite"
+ecs_service_name = "polymath-tr-invite-srv"
+ecs_task_family = "polymath-tr-invite-fam"
+ecs_task_name = "polymath-tr-invite-tsk"
 
 # Ollama variables
 ollama_host = ""
