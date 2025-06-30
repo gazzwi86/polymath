@@ -41,7 +41,7 @@
     "typescript-eslint": "^8.35.0"
   },
   "dependencies": {
-    "@aws-sdk/credential-provider-node": "^3.835.0",
+    "@aws-sdk/credential-provider-node": "^3.839.0",
     "@langchain/community": "^0.3.47",
     "@langchain/core": "^0.3.61",
     "@langchain/google-genai": "^0.2.13",
