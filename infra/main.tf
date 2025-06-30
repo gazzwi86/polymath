@@ -27,6 +27,32 @@ resource "aws_vpc" "main" {
   }
 }
 
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.vpc_name}-igw"
+  }
+}
+
+resource "aws_route_table" "main" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
+  tags = {
+    Name = "${var.vpc_name}-rt"
+  }
+}
+
+resource "aws_route_table_association" "main" {
+  subnet_id      = aws_subnet.main.id
+  route_table_id = aws_route_table.main.id
+}
+
 resource "aws_ecr_repository" "this" {
   name = var.ecr_repo_name
 }
@@ -139,15 +165,29 @@ resource "aws_apigatewayv2_stage" "agent_api_stage" {
 resource "aws_apigatewayv2_integration" "agent_api_integration" {
   api_id                 = aws_apigatewayv2_api.agent_api.id
   integration_type       = "HTTP_PROXY"
-  integration_method     = "ANY"
-  integration_uri        = aws_ecs_service.this.network_configuration[0].assign_public_ip ? "http://${aws_ecs_service.this.name}.ecs.${var.aws_region}.amazonaws.com" : ""
+  integration_method     = "POST"
+  integration_uri        = "http://${aws_ecs_service.this.name}.ecs.${var.aws_region}.amazonaws.com:${var.container_port}/invite"
   payload_format_version = "1.0"
 }
 
-resource "aws_apigatewayv2_route" "agent_api_route" {
+resource "aws_apigatewayv2_route" "agent_invite_route" {
   api_id    = aws_apigatewayv2_api.agent_api.id
-  route_key = "ANY /{proxy+}"
+  route_key = "POST /invite"
   target    = "integrations/${aws_apigatewayv2_integration.agent_api_integration.id}"
+}
+
+resource "aws_apigatewayv2_integration" "health_integration" {
+  api_id                 = aws_apigatewayv2_api.agent_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "GET"
+  integration_uri        = "http://${aws_ecs_service.this.name}.ecs.${var.aws_region}.amazonaws.com:${var.container_port}/health"
+  payload_format_version = "1.0"
+}
+
+resource "aws_apigatewayv2_route" "health_route" {
+  api_id    = aws_apigatewayv2_api.agent_api.id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.health_integration.id}"
 }
 
 resource "aws_subnet" "main" {
