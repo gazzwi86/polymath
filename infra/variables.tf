@@ -49,6 +49,11 @@ variable "container_port" {
   default = 3000
 }
 
+variable "vpc_name" {
+  type    = string
+  default = "tech-radar-agent-vpc"
+}
+
 variable "vpc_cidr_block" {
   type    = string
   default = "10.0.0.0/16"
