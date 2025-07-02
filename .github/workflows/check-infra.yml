@@ -1,17 +1,14 @@
-name: Deploy
+name: Infrastructure Checks
 on:
-  workflow_run:
-    workflows: ["Application Checks"]
-    types:
-      - completed
+  pull_request:
+    branches: [main]
 
 permissions:
   id-token: write # ✅ required for OIDC!
   contents: read # Optional: needed if your workflow checks out code
 
 jobs:
-  deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+  infra_checks:
     environment: dev
     runs-on: ubuntu-latest
     env:
@@ -46,24 +43,8 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
       - name: Terraform Init & Apply (Foundations)
         run: |
           cd infra
           terraform init
-          terraform apply -auto-approve -target=aws_ecr_repository.this
-      - name: Build, tag, and push Docker image to ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          npm ci --omit=dev
-          npm run build
-          docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPO_NAME }}:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/${{ secrets.ECR_REPO_NAME }}:$IMAGE_TAG
-      - name: Terraform Init & Apply (All Infra)
-        run: |
-          cd infra
-          terraform apply -auto-approve
+          terraform plan

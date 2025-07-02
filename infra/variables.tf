@@ -2,10 +2,15 @@ variable "aws_region" {
   type = string
   default = "ap-southeast-2"
 }
-variable aws_region_az {
+variable aws_region_az_1 {
   type = string
   default = "ap-southeast-2a"
 }
+variable "aws_region_az_2" {
+  type = string
+  default = "ap-southeast-2b"
+}
+
 variable "vpc_name" { type = string }
 variable "api_name" { type = string }
 variable "ecr_repo_name" { type = string }
@@ -47,11 +52,6 @@ variable "langsmith_endpoint" { type = string }
 variable "container_port" {
   type    = number
   default = 3000
-}
-
-variable "vpc_name" {
-  type    = string
-  default = "tech-radar-agent-vpc"
 }
 
 variable "vpc_cidr_block" {
